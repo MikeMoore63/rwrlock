@@ -11,9 +11,9 @@ This does not implement and priority between readers and writers
   
 ```
 Usage:
-            from rwrlock import RWLock
+            from rwrlock import RWRLock
             
-            my_obj_rwlock = RWLock()
+            my_obj_rwlock = RWRLock()
             
             # When reading from my_obj:
             with my_obj_rwlock.r_locked():
