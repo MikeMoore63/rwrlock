@@ -8,7 +8,7 @@ import time
 from  rwrlock import RWRLock
 
 
-def writer(L, value, after, rwlock, times):
+def writer(L, value, after, rwlock, times,rand=0):
     """Append value to L after a period of time."""
     try:
         with rwlock.w_locked():
@@ -26,7 +26,7 @@ def writer(L, value, after, rwlock, times):
         times.append(time.time())
 
 
-def reader(L1, L2, after, rwlock, times):
+def reader(L1, L2, after, rwlock, times, rand=0):
     """Append values from L1 to L2 after a period of time."""
     try:
         with rwlock.r_locked():
@@ -41,14 +41,20 @@ def reader(L1, L2, after, rwlock, times):
         times.append(time.time())
 
 
-def readerTurnedWriter(L, value, after, rwlock, times):
+def readerTurnedWriter(L, value, after, rwlock, times,rand=0):
     """Append value to L after a period of time."""
     try:
         with rwlock.r_locked():
+            if rand==1:
+
             with rwlock.w_locked():
+
+
                 times.append(time.time())
                 time.sleep(after)
                 L.append(value)
+                if rand == 2:
+                    
     finally:
         times.append(time.time())
 
@@ -197,6 +203,34 @@ def test_writeReadReadtowrite():
     thread3 = threading.Thread(
         target=readerTurnedWriter,
         args=(W, 'bar', 0.3, lock, TW2),
+        )
+    thread1.start()
+    time.sleep(0.1)
+    thread2.start()
+    time.sleep(0.1)
+    thread3.start()
+    time.sleep(1.7)
+    assert 'foo' in R1
+    assert 'bar' not in R1
+    assert 'bar' in W
+    assert TR1[0] >= TW1[1]              # Read 1 started after write 1.
+    assert TW2[0] >= TR1[1]              # Write 2 started after read 1.
+
+def test_writeReadReadtowriteException():
+    lock = RWRLock()
+    W, R1 = [], []
+    TW1, TR1, TW2 = [], [], []
+    thread1 = threading.Thread(
+        target=writer,
+        args=(W, 'foo', 0.3, lock, TW1),
+        )
+    thread2 = threading.Thread(
+        target=reader,
+        args=(W, R1, 0.3, lock, TR1),
+        )
+    thread3 = threading.Thread(
+        target=readerTurnedWriter,
+        args=(W, 'bar', 0.3, lock, TW2,rand=1),
         )
     thread1.start()
     time.sleep(0.1)
