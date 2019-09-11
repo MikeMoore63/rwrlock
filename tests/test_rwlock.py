@@ -73,6 +73,48 @@ def test_reentrancy():
 
     assert(1==1)
 
+def test_reentrancyexceptions():
+    lock = RWRLock()
+    # Reentrant read locks.
+    try:
+        with lock.r_locked():
+            with lock.r_locked():
+                raise Exception('a dummy exception')
+    except:
+        pass
+
+    assert lock.num_r == 0
+    rlockcount,wlockcount = lock.thread_lock_count()
+    assert rlockcount==0
+    assert wlockcount==0
+
+    # Reentrant write locks.
+    try:
+        with lock.w_locked():
+            with lock.w_locked():
+                raise Exception('a dummy exception')
+    except:
+        pass
+
+    assert lock.num_r == 0
+    rlockcount, wlockcount = lock.thread_lock_count()
+    assert rlockcount == 0
+    assert wlockcount == 0
+
+    # Writers are also readers.
+    try:
+        with lock.w_locked():
+            with lock.r_locked():
+                raise Exception('a dummy exception')
+    except:
+        pass
+
+    assert lock.num_r == 0
+    rlockcount, wlockcount = lock.thread_lock_count()
+    assert rlockcount == 0
+    assert wlockcount == 0
+
+
 
 def test_reentrancy2locks():
     lock = RWRLock()
