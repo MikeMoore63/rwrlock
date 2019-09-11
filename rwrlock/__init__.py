@@ -113,9 +113,12 @@ class RWRLock(object):
     @contextmanager
     def r_locked(self):
         """ This method is designed to be used via the `with` statement. """
-        self.r_acquire()
-        yield
-        self.r_release()
+        try:
+            self.r_acquire()
+            yield
+        # need finally as documented here https://docs.python.org/3/library/contextlib.html
+        finally:
+            self.r_release()
 
     # ___________________________________________________________________
     # Writing methods.
@@ -164,6 +167,9 @@ class RWRLock(object):
     @contextmanager
     def w_locked(self):
         """ This method is designed to be used via the `with` statement. """
-        self.w_acquire()
-        yield
-        self.w_release()
+        try:
+            self.w_acquire()
+            yield
+        # need finally as documented here https://docs.python.org/3/library/contextlib.html
+        finally:
+            self.w_release()
