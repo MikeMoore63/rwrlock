@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='rwrlock',
-     version='0.0.3',
+     version='0.0.4',
      scripts=[] ,
      author="Mike Moore",
      author_email="z_z_zebra@yahoo.com",
