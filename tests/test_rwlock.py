@@ -21,10 +21,15 @@ def checklockstate(L,rlockexpected=None,wlockexpected=None):
     if rlockcount > 0 and wlockcount == 0:
         assert num_r >= 1
 
-    if num_r > 0:
+    if num_r > 0 or num_w > 0:
         assert num_w == 1
-    if wlockcount > 0:
+        assert L.w_lock.acquire(False) == False
+
+    if wlockcount > 0 :
+        assert L.w_lock.acquire(False) == False
         assert num_r == 0
+        assert num_w == 1
+
 
     if rlockexpected is not None:
         assert rlockcount == rlockexpected
