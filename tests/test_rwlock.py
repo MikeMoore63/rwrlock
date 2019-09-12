@@ -88,6 +88,7 @@ def readerTurnedWriter(L, value, after, rwlock, times):
 
 def test_reentrancy():
     lock = RWRLock()
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
     # Reentrant read locks.
     with lock.r_locked():
         checklockstate(lock, rlockexpected=1, wlockexpected=0)
@@ -114,6 +115,7 @@ def test_reentrancy():
 
 def test_reentrancyexceptions():
     lock = RWRLock()
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
     # Reentrant read locks.
     try:
         with lock.r_locked():
@@ -150,6 +152,8 @@ def test_reentrancyexceptions():
 def test_reentrancy2locks():
     lock = RWRLock()
     lock2 = RWRLock()
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
+    checklockstate(lock2, rlockexpected=0, wlockexpected=0)
 
     # Reentrant read locks 2locks.
     with lock.r_locked():
