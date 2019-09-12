@@ -93,6 +93,7 @@ def readerTurnedWriter(L, value, after, rwlock, times):
 
 def test_reentrancy():
     lock = RWRLock()
+    # these are single threaded so safeto check lock state without a lock
     checklockstate(lock, rlockexpected=0, wlockexpected=0)
     # Reentrant read locks.
     with lock.r_locked():
@@ -120,6 +121,7 @@ def test_reentrancy():
 
 def test_reentrancyexceptions():
     lock = RWRLock()
+    # these are single threaded so safeto check lock state without a lock
     checklockstate(lock, rlockexpected=0, wlockexpected=0)
     # Reentrant read locks.
     try:
