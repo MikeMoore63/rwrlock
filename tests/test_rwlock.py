@@ -7,18 +7,46 @@ import threading
 import time
 from  rwrlock import RWRLock
 
+def checklockstate(L,rlockexpected=None,wlockexpected=None):
+    """ Check state of lock assumed called in a lock """
+    rlockcount, wlockcount = L.thread_lock_count()
+    num_r = L.num_r
+    num_w = L.num_w
+    assert rlockcount >= 0
+    assert wlockcount >= 0
+    assert num_r >= 0
+    assert num_w >= 0
+
+
+    if rlockcount > 0 and wlockcount == 0:
+        assert num_r >= 1
+
+    if num_r > 0:
+        assert num_w == 1
+    if wlockcount > 0:
+        assert num_r == 0
+
+    if rlockexpected is not None:
+        assert rlockcount == rlockexpected
+
+    if wlockexpected is not None:
+        assert wlockexpected == wlockcount
+
 
 def writer(L, value, after, rwlock, times):
     """Append value to L after a period of time."""
     try:
         with rwlock.w_locked():
+            checklockstate(rwlock,rlockexpected=0,wlockexpected=1)
         # Get another lock, to test the fact that obtaining multiple
         # write locks from the same thread context doesn't block (lock
         # reentrancy).
             with rwlock.w_locked():
+                checklockstate(rwlock, rlockexpected=0, wlockexpected=2)
         # Get a reader lock too; should be the same as getting another
         # writer since writers are inherently readers as well.
                 with rwlock.r_locked():
+                    checklockstate(rwlock, rlockexpected=1, wlockexpected=2)
                     times.append(time.time())
                     time.sleep(after)
                     L.append(value)
@@ -30,10 +58,12 @@ def reader(L1, L2, after, rwlock, times):
     """Append values from L1 to L2 after a period of time."""
     try:
         with rwlock.r_locked():
+            checklockstate(rwlock, rlockexpected=1, wlockexpected=0)
         # Get another lock, to test the fact that obtaining multiple
         # write locks from the same thread context doesn't block (lock
         # reentrancy).
             with rwlock.r_locked():
+                checklockstate(rwlock, rlockexpected=2, wlockexpected=0)
                 times.append(time.time())
                 time.sleep(after)
                 L2.extend(L1)
@@ -45,7 +75,9 @@ def readerTurnedWriter(L, value, after, rwlock, times):
     """Append value to L after a period of time."""
     try:
         with rwlock.r_locked():
+            checklockstate(rwlock, rlockexpected=1, wlockexpected=0)
             with rwlock.w_locked():
+                checklockstate(rwlock, rlockexpected=1, wlockexpected=1)
                 times.append(time.time())
                 time.sleep(after)
                 L.append(value)
@@ -58,35 +90,40 @@ def test_reentrancy():
     lock = RWRLock()
     # Reentrant read locks.
     with lock.r_locked():
+        checklockstate(lock, rlockexpected=1, wlockexpected=0)
         with lock.r_locked():
+            checklockstate(lock, rlockexpected=2, wlockexpected=0)
             pass
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
 
     # Reentrant write locks.
     with lock.w_locked():
+        checklockstate(lock, rlockexpected=0, wlockexpected=1)
         with lock.w_locked():
+            checklockstate(lock, rlockexpected=0, wlockexpected=2)
             pass
-
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
     # Writers are also readers.
     with lock.w_locked():
+        checklockstate(lock, rlockexpected=0, wlockexpected=1)
         with lock.r_locked():
+            checklockstate(lock, rlockexpected=1, wlockexpected=1)
             pass
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
 
-    assert(1==1)
 
 def test_reentrancyexceptions():
     lock = RWRLock()
     # Reentrant read locks.
     try:
         with lock.r_locked():
+            checklockstate(lock, rlockexpected=1, wlockexpected=0)
             with lock.r_locked():
+                checklockstate(lock, rlockexpected=2, wlockexpected=0)
                 raise Exception('a dummy exception')
     except:
         pass
-
-    assert lock.num_r == 0
-    rlockcount,wlockcount = lock.thread_lock_count()
-    assert rlockcount==0
-    assert wlockcount==0
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
 
     # Reentrant write locks.
     try:
@@ -96,10 +133,7 @@ def test_reentrancyexceptions():
     except:
         pass
 
-    assert lock.num_r == 0
-    rlockcount, wlockcount = lock.thread_lock_count()
-    assert rlockcount == 0
-    assert wlockcount == 0
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
 
     # Writers are also readers.
     try:
@@ -109,10 +143,7 @@ def test_reentrancyexceptions():
     except:
         pass
 
-    assert lock.num_r == 0
-    rlockcount, wlockcount = lock.thread_lock_count()
-    assert rlockcount == 0
-    assert wlockcount == 0
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
 
 
 
@@ -122,38 +153,90 @@ def test_reentrancy2locks():
 
     # Reentrant read locks 2locks.
     with lock.r_locked():
+        checklockstate(lock, rlockexpected=1, wlockexpected=0)
+        checklockstate(lock2, rlockexpected=0, wlockexpected=0)
         with lock.r_locked():
+            checklockstate(lock, rlockexpected=2, wlockexpected=0)
+            checklockstate(lock2, rlockexpected=0, wlockexpected=0)
             with lock2.r_locked():
+                checklockstate(lock, rlockexpected=2, wlockexpected=0)
+                checklockstate(lock2, rlockexpected=1, wlockexpected=0)
                 with lock2.r_locked():
+                    checklockstate(lock, rlockexpected=2, wlockexpected=0)
+                    checklockstate(lock2, rlockexpected=2, wlockexpected=0)
                     pass
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
+    checklockstate(lock2, rlockexpected=0, wlockexpected=0)
 
     # Reentrant write locks.
     with lock.w_locked():
+        checklockstate(lock, rlockexpected=0, wlockexpected=1)
+        checklockstate(lock2, rlockexpected=0, wlockexpected=0)
         with lock.w_locked():
+            checklockstate(lock, rlockexpected=0, wlockexpected=2)
+            checklockstate(lock2, rlockexpected=0, wlockexpected=0)
             with lock2.w_locked():
+                checklockstate(lock, rlockexpected=0, wlockexpected=2)
+                checklockstate(lock2, rlockexpected=0, wlockexpected=1)
                 with lock2.w_locked():
+                    checklockstate(lock, rlockexpected=0, wlockexpected=2)
+                    checklockstate(lock2, rlockexpected=0, wlockexpected=2)
                     pass
+
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
+    checklockstate(lock2, rlockexpected=0, wlockexpected=0)
 
     # Writers are also readers.
     with lock.w_locked():
+        checklockstate(lock, rlockexpected=0, wlockexpected=1)
+        checklockstate(lock2, rlockexpected=0, wlockexpected=0)
         with lock.r_locked():
+            checklockstate(lock, rlockexpected=1, wlockexpected=1)
+            checklockstate(lock2, rlockexpected=0, wlockexpected=0)
             with lock2.w_locked():
+                checklockstate(lock, rlockexpected=1, wlockexpected=1)
+                checklockstate(lock2, rlockexpected=0, wlockexpected=1)
                 with lock2.r_locked():
+                    checklockstate(lock, rlockexpected=1, wlockexpected=1)
+                    checklockstate(lock2, rlockexpected=1, wlockexpected=1)
                     pass
+
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
+    checklockstate(lock2, rlockexpected=0, wlockexpected=0)
 
     # Writers are also readers 2llocks.
     with lock.w_locked():
+        checklockstate(lock, rlockexpected=0, wlockexpected=1)
+        checklockstate(lock2, rlockexpected=0, wlockexpected=0)
         with lock2.r_locked():
+            checklockstate(lock, rlockexpected=0, wlockexpected=1)
+            checklockstate(lock2, rlockexpected=1, wlockexpected=0)
             with lock.w_locked():
+                checklockstate(lock, rlockexpected=0, wlockexpected=2)
+                checklockstate(lock2, rlockexpected=1, wlockexpected=0)
                 with lock2.r_locked():
+                    checklockstate(lock, rlockexpected=0, wlockexpected=2)
+                    checklockstate(lock2, rlockexpected=2, wlockexpected=0)
                     pass
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
+    checklockstate(lock2, rlockexpected=0, wlockexpected=0)
 
     with lock.w_locked():
+        checklockstate(lock, rlockexpected=0, wlockexpected=1)
+        checklockstate(lock2, rlockexpected=0, wlockexpected=0)
         with lock2.r_locked():
+            checklockstate(lock, rlockexpected=0, wlockexpected=1)
+            checklockstate(lock2, rlockexpected=1, wlockexpected=0)
             with lock2.w_locked():
+                checklockstate(lock, rlockexpected=0, wlockexpected=1)
+                checklockstate(lock2, rlockexpected=1, wlockexpected=1)
                 with lock.r_locked():
+                    checklockstate(lock, rlockexpected=1, wlockexpected=1)
+                    checklockstate(lock2, rlockexpected=1, wlockexpected=1)
                     pass
-    assert(1==1)
+    checklockstate(lock, rlockexpected=0, wlockexpected=0)
+    checklockstate(lock2, rlockexpected=0, wlockexpected=0)
+
 def test_writeReadRead():
     lock = RWRLock()
     W, R1, R2 = [], [], []
