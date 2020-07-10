@@ -78,6 +78,7 @@ class RWRLock(object):
         self._threadlocal.rlockcount =  rlockcount
         self._threadlocal.wlockcount =  wlockcount
 
+    # non re-entrant acquire rentrancy on per thread basis
     def nr_acquire(self):
         self.num_r_lock.acquire()
         self.num_r += 1
@@ -86,6 +87,7 @@ class RWRLock(object):
             self.num_w += 1
         self.num_r_lock.release()
 
+    # rentrant acquire
     def r_acquire(self):
         rlockcount,wlockcount = self.thread_lock_count()
         if rlockcount==0 and wlockcount==0:
@@ -93,6 +95,7 @@ class RWRLock(object):
         rlockcount=rlockcount+1
         self.set_thread_lock_count(rlockcount, wlockcount)
 
+    # non reentrant release
     def nr_release(self):
         assert self.num_r > 0
         self.num_r_lock.acquire()
@@ -102,6 +105,7 @@ class RWRLock(object):
             self.w_lock.release()
         self.num_r_lock.release()
 
+    # rentrant release
     def r_release(self):
         rlockcount,wlockcount = self.thread_lock_count()
         assert  rlockcount > 0

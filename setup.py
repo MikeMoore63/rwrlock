@@ -14,9 +14,9 @@ setuptools.setup(
      long_description=long_description,
      url="https://github.com/Mikemoore63/rwrlock",
      packages=setuptools.find_packages(),
-     test_suite='nose.collector',
+     test_suite='tests',
      use_2to3=True,
-     tests_require=['nose'],
+     tests_require=[],
      include_package_data=True,
      install_requires=[
 
