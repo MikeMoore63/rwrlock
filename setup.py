@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='rwrlock',
-     version='0.0.4',
+     version='0.0.5',
      scripts=[] ,
      author="Mike Moore",
      author_email="z_z_zebra@yahoo.com",
@@ -15,14 +15,13 @@ setuptools.setup(
      url="https://github.com/Mikemoore63/rwrlock",
      packages=setuptools.find_packages(),
      test_suite='tests',
-     use_2to3=True,
      tests_require=[],
      include_package_data=True,
      install_requires=[
 
       ],
      classifiers=[
-         "Programming Language :: Python :: 2",
+         "Programming Language :: Python :: 3",
          "License :: OSI Approved :: MIT License",
          "Operating System :: OS Independent",
      ],
